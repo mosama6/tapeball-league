@@ -9,7 +9,13 @@ import { WolfLogo } from "./brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { API_BASE } from "./config";
 
-const socket = io(API_BASE || undefined, { path: "/socket.io" });
+const socket = io(API_BASE || undefined, {
+  path: "/socket.io",
+  transports: ["websocket", "polling"],
+  reconnection: true,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 4000
+});
 
 function Shell({ children }: { children: React.ReactNode }) {
   const [q, setQ] = useState("");
@@ -20,8 +26,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Link to="/" className="brand">
           <span className="mark"><WolfLogo /></span>
           <span className="brand-copy">
-            <strong>Wolfpack</strong>
-            <span>Tape Ball League</span>
+            <strong>Wolfpack Cricket</strong>
+           
           </span>
         </Link>
         <ThemeToggle />

@@ -110,7 +110,7 @@ export function Admin() {
           <span className="mark"><WolfLogo /></span>
           <div>
             <h2 style={{ margin: 0 }}>Admin login</h2>
-            <p className="tiny" style={{ margin: 0 }}>Wolfpack Tape Ball League</p>
+            <p className="tiny" style={{ margin: 0 }}>Wolfpack Cricket</p>
           </div>
         </div>
         <p className="muted">Set up tournaments, squads, fixtures, and umpires.</p>

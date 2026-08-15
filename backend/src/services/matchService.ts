@@ -155,16 +155,17 @@ async function persist(matchId: string, state: MatchState, userId?: string, acti
       });
     }
   });
-  const match = await loadMatch(matchId);
-  if (match) {
+  emitMatch(matchId, snapshot);
+  void (async () => {
     try {
+      const match = await loadMatch(matchId);
+      if (!match) return;
+      emitTournament(match.tournamentId, { matchId });
       await recomputeTournamentStats(match.tournamentId);
     } catch (err) {
       console.error("stats recompute failed", err);
     }
-    emitMatch(matchId, snapshot);
-    emitTournament(match.tournamentId, { matchId });
-  }
+  })();
   return snapshot;
 }
 
