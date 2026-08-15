@@ -108,15 +108,7 @@ async function main() {
   await upsertUser("admin@lms.local", "admin@wolfpackcricket.com", "Ayesha Admin", "ADMIN", passwordHash);
   await upsertUser("umpire@lms.local", "umpire@wolfpackcricket.com", "Umar Umpire", "UMPIRE", passwordHash);
 
-  await prisma.delivery.deleteMany();
-  await prisma.commentary.deleteMany();
-  await prisma.innings.deleteMany();
-  await prisma.playingXI.deleteMany();
-  await prisma.matchOfficial.deleteMany();
-  await prisma.auditLog.deleteMany();
-  await prisma.match.deleteMany();
-  await prisma.fixture.deleteMany();
-
+  // Credentials + tournament/squads only. Never create or wipe fixtures/matches.
   let tournament = await prisma.tournament.findFirst({ where: { name: "Wolfpack Tape Ball League" } });
   if (!tournament) {
     tournament = await prisma.tournament.create({

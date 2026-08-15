@@ -8,8 +8,8 @@ type Tab = "tournament" | "rules" | "teams" | "players" | "fixtures" | "umpires"
 
 export function Admin() {
   const [token, setToken] = useState(localStorage.getItem("wolfpack_admin_token") ?? "");
-  const [email, setEmail] = useState("admin@wolfpackcricket.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [tab, setTab] = useState<Tab>("tournament");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -115,9 +115,9 @@ export function Admin() {
         </div>
         <p className="muted">Set up tournaments, squads, fixtures, and umpires.</p>
         <label className="tiny">Email</label>
-        <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="input" type="email" autoComplete="username" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <label className="tiny">Password</label>
-        <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input className="input" type="password" autoComplete="current-password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
         {err && <p className="tiny" style={{ color: "var(--hot)", marginTop: 8 }}>{err}</p>}
         <button className="btn" style={{ marginTop: 12, width: "100%" }}>Sign in</button>
       </form>
@@ -672,14 +672,14 @@ function CreateFixture({
 function CreateUmpire({ onCreated, onError }: { onCreated: () => void; onError: (s: string) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("password123");
+  const [password, setPassword] = useState("");
   return (
     <div className="card">
       <h3>New umpire login</h3>
       <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-      <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input className="input" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <button className="btn" style={{ marginTop: 10 }} disabled={!name || !email} onClick={async () => {
+      <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <button className="btn" style={{ marginTop: 10 }} disabled={!name || !email || !password} onClick={async () => {
         try {
           await api("/api/admin/users", {
             method: "POST",
@@ -687,6 +687,7 @@ function CreateUmpire({ onCreated, onError }: { onCreated: () => void; onError: 
           });
           setName("");
           setEmail("");
+          setPassword("");
           onCreated();
         } catch (e) {
           onError(e instanceof Error ? e.message : "Failed");
