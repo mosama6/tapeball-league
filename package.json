@@ -1,0 +1,29 @@
+{
+  "name": "wolfpack-tapeball",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Wolfpack Tape Ball League — cricket tournament scoring platform (umpire + public web, event-sourced)",
+  "workspaces": [
+    "shared",
+    "backend",
+    "umpire-app",
+    "web-app"
+  ],
+  "scripts": {
+    "dev": "concurrently -n engine,api,umpire,web -c cyan,green,yellow,magenta \"npm run test:watch -w shared\" \"npm run dev -w backend\" \"npm run dev -w umpire-app\" \"npm run dev -w web-app\"",
+    "dev:apps": "concurrently -n api,umpire,web -c green,yellow,magenta \"npm run dev -w backend\" \"npm run dev -w umpire-app\" \"npm run dev -w web-app\"",
+    "test": "npm run test -w shared",
+    "db:up": "docker compose up -d",
+    "db:push": "npm run db:push -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "db:reset": "npm run db:reset -w backend",
+    "start:api": "npm run start:prod -w backend",
+    "build": "npm run build -w shared && npm run build -w backend && npm run build -w umpire-app && npm run build -w web-app"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

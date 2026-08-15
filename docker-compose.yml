@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wolfpack-tapeball-db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: tapeball
+      POSTGRES_PASSWORD: tapeball
+      POSTGRES_DB: tapeball
+    volumes:
+      - tapeball_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tapeball -d tapeball"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tapeball_pg:

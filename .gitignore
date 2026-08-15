@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Env / secrets — keep .env.example
+.env
+.env.*
+!.env.example
+backend/.env
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+web-app/dist/
+umpire-app/dist/
+backend/dist/
+shared/dist/
+
+# Vite / test caches
+.vite/
+coverage/
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Prisma local SQLite leftovers
+*.db
+*.db-journal
+
+# Cursor / local agent
+.cursor/
+agent-transcripts/
