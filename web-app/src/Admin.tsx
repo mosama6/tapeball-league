@@ -276,13 +276,34 @@ export function Admin() {
           <CreateUmpire onCreated={() => note("Umpire account created")} onError={setErr} />
           <AssignUmpire users={users} matches={matches} onDone={() => note("Umpire assigned")} onError={setErr} />
           <div className="card">
-            <h3>Accounts</h3>
-            {users.map((u) => (
+            <h3>Umpire accounts</h3>
+            {users.filter((u) => u.role === "UMPIRE").map((u) => (
               <div className="list-row" key={u.id}>
-                <span>{u.name}</span>
-                <span className="tiny">{u.role} · {u.email}</span>
+                <span>
+                  {u.name}
+                  <span className="tiny"> · {u.email}{isDemoAccount(u.email) ? " · demo" : ""}</span>
+                </span>
+                <button
+                  type="button"
+                  className="tiny"
+                  style={{ color: "var(--hot)" }}
+                  onClick={async () => {
+                    if (!confirm(`Remove umpire ${u.name}?`)) return;
+                    try {
+                      await api(`/api/admin/users/${u.id}`, { method: "DELETE" });
+                      note("Umpire removed");
+                    } catch (e) {
+                      setErr(e instanceof Error ? e.message : "Delete failed");
+                    }
+                  }}
+                >
+                  Delete
+                </button>
               </div>
             ))}
+            {users.filter((u) => u.role === "UMPIRE").length === 0 && (
+              <p className="tiny">No umpires yet. Create a real umpire login above, then assign them to a match.</p>
+            )}
           </div>
         </div>
       )}
@@ -676,6 +697,7 @@ function CreateUmpire({ onCreated, onError }: { onCreated: () => void; onError: 
   return (
     <div className="card">
       <h3>New umpire login</h3>
+      <p className="tiny">Use the umpire’s real name and email. This is who you assign to matches.</p>
       <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
       <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
       <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -697,6 +719,12 @@ function CreateUmpire({ onCreated, onError }: { onCreated: () => void; onError: 
   );
 }
 
+function isDemoAccount(email: string) {
+  return ["umpire@wolfpackcricket.com", "umpire@lms.local", "admin@wolfpackcricket.com", "admin@lms.local"].includes(
+    email.toLowerCase()
+  );
+}
+
 function AssignUmpire({
   users,
   matches,
@@ -710,6 +738,7 @@ function AssignUmpire({
 }) {
   const [userId, setUserId] = useState("");
   const [matchId, setMatchId] = useState("");
+  const umpires = users.filter((u) => u.role === "UMPIRE" && !isDemoAccount(u.email));
   return (
     <div className="card">
       <h3>Assign umpire to match</h3>
@@ -721,13 +750,19 @@ function AssignUmpire({
       </select>
       <select className="input" value={userId} onChange={(e) => setUserId(e.target.value)}>
         <option value="">Umpire</option>
-        {users.filter((u) => u.role === "UMPIRE" || u.role === "ADMIN").map((u) => (
-          <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+        {umpires.map((u) => (
+          <option key={u.id} value={u.id}>{u.name} — {u.email}</option>
         ))}
       </select>
+      {umpires.length === 0 && (
+        <p className="tiny" style={{ marginTop: 8 }}>
+          No umpire logins yet. Use “New umpire login” with the person’s real name and email.
+        </p>
+      )}
       <button className="btn" style={{ marginTop: 10 }} disabled={!userId || !matchId} onClick={async () => {
         try {
           await api(`/api/admin/matches/${matchId}/officials`, { method: "POST", body: JSON.stringify({ userId }) });
+          setUserId("");
           onDone();
         } catch (e) {
           onError(e instanceof Error ? e.message : "Failed");

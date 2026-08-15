@@ -173,7 +173,7 @@ export function Score() {
 
   return (
     <div>
-      <div className="topbar" style={{ position: "relative", paddingTop: 0 }}>
+      <div className="subbar">
         <Link to="/" className="tiny">
           ← Matches
         </Link>

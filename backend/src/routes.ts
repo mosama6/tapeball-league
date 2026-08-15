@@ -647,6 +647,18 @@ api.post("/admin/users", admin, async (req, res) => {
   res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
 });
 
+api.delete("/admin/users/:id", admin, async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!user) return res.status(404).json({ error: "Not found" });
+  if (user.role !== "UMPIRE") return res.status(400).json({ error: "Only umpire accounts can be deleted here" });
+  try {
+    await prisma.user.delete({ where: { id: user.id } });
+    res.json({ ok: true });
+  } catch {
+    res.status(409).json({ error: "Cannot delete this umpire because they have match scoring history" });
+  }
+});
+
 function gallerySrc(row: { id: string; imageUrl: string | null; imageData: Buffer | null }) {
   if (row.imageUrl) return row.imageUrl;
   if (row.imageData) return `/api/gallery/${row.id}/image`;

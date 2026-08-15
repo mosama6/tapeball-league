@@ -24,7 +24,9 @@ function Shell({ children }: { children: React.ReactNode }) {
             <span>Tape Ball League</span>
           </span>
         </Link>
+        <ThemeToggle />
         <form
+          className="nav-search"
           onSubmit={(e) => {
             e.preventDefault();
             if (q.trim().length >= 2) nav(`/search?q=${encodeURIComponent(q)}`);
@@ -32,9 +34,10 @@ function Shell({ children }: { children: React.ReactNode }) {
         >
           <input className="search" placeholder="Search players, teams…" value={q} onChange={(e) => setQ(e.target.value)} />
         </form>
-        <NavLink to="/leaderboards">Points</NavLink>
-        <NavLink to="/admin">Admin</NavLink>
-        <ThemeToggle />
+        <div className="nav-links">
+          <NavLink to="/leaderboards">Points</NavLink>
+          <NavLink to="/admin">Admin</NavLink>
+        </div>
       </nav>
       <div className="wrap">{children}</div>
     </>

@@ -106,7 +106,8 @@ async function main() {
   console.log("Seeding Wolfpack Tape Ball League (no matches)…");
   const passwordHash = await bcrypt.hash("password123", 10);
   await upsertUser("admin@lms.local", "admin@wolfpackcricket.com", "Ayesha Admin", "ADMIN", passwordHash);
-  await upsertUser("umpire@lms.local", "umpire@wolfpackcricket.com", "Umar Umpire", "UMPIRE", passwordHash);
+
+  // Do not seed a demo umpire. Create real umpires in Admin.
 
   // Credentials + tournament/squads only. Never create or wipe fixtures/matches.
   let tournament = await prisma.tournament.findFirst({ where: { name: "Wolfpack Tape Ball League" } });
@@ -146,9 +147,9 @@ async function main() {
     await makeTeam(tournament.id, groupB.id, "Peshawar Panthers", "PP", "Peshawar", names.panthers);
   }
 
-  console.log("Seed complete. No fixtures or matches were created.");
+  console.log("Seed complete. No fixtures, matches, or umpire accounts were created.");
   console.log("Admin   admin@wolfpackcricket.com / password123");
-  console.log("Umpire  umpire@wolfpackcricket.com / password123");
+  console.log("Create umpire logins in Admin → Umpires.");
 }
 
 main()
