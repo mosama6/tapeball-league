@@ -264,7 +264,10 @@ export function Admin() {
             {matches.map((m) => (
               <div className="list-row" key={m.id}>
                 <Link to={`/matches/${m.id}`}>{m.team1.shortName} vs {m.team2.shortName}</Link>
-                <span className="tiny">{m.status.replaceAll("_", " ")} · {m.oversPerInnings} ov</span>
+                <span className="tiny">
+                  {m.status.replaceAll("_", " ")} · {m.oversPerInnings} ov ·{" "}
+                  <Link to={`/overlay/matches/${m.id}`} target="_blank">Overlay</Link>
+                </span>
               </div>
             ))}
           </div>

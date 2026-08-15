@@ -5,6 +5,7 @@ import { formatNrr, youtubeEmbedUrl } from "@lms/shared";
 import { api } from "./api";
 import { Admin } from "./Admin";
 import { GallerySlideshow } from "./Gallery";
+import { ScoreOverlay } from "./Overlay";
 import { WolfLogo } from "./brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { API_BASE } from "./config";
@@ -187,6 +188,11 @@ function MatchPage() {
         {data.team1.name} vs {data.team2.name}
       </h2>
       {live && <span className="live-tag"><i /> Live</span>}
+      <p className="tiny" style={{ marginTop: 8 }}>
+        <a href={`/overlay/matches/${id}`} target="_blank" rel="noreferrer">
+          YouTube / OBS score overlay
+        </a>
+      </p>
       {s && (
         <div className="card" style={{ marginTop: 12 }}>
           <div className="list-row">
@@ -597,17 +603,25 @@ function SearchPage() {
 
 export function App() {
   return (
-    <Shell>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/matches/:id" element={<MatchPage />} />
-        <Route path="/tournaments/:id" element={<TournamentPage />} />
-        <Route path="/teams/:id" element={<TeamPage />} />
-        <Route path="/players/:id" element={<PlayerPage />} />
-        <Route path="/leaderboards" element={<Boards />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/admin" element={<Admin />} />
-      </Routes>
-    </Shell>
+    <Routes>
+      <Route path="/overlay/matches/:id" element={<ScoreOverlay />} />
+      <Route
+        path="*"
+        element={
+          <Shell>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/matches/:id" element={<MatchPage />} />
+              <Route path="/tournaments/:id" element={<TournamentPage />} />
+              <Route path="/teams/:id" element={<TeamPage />} />
+              <Route path="/players/:id" element={<PlayerPage />} />
+              <Route path="/leaderboards" element={<Boards />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </Shell>
+        }
+      />
+    </Routes>
   );
 }
