@@ -321,6 +321,7 @@ export interface MatchState {
   resultType: ResultType | null;
   resultSummary: string | null;
   appliedEventIds: string[];
+  cancelledEventIds: string[];
   audit: AuditEntry[];
 }
 

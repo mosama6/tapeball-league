@@ -25,6 +25,10 @@ export async function enqueue(ev: Omit<QueuedEvent, "synced" | "createdAt">) {
   await db.queue.put({ ...ev, synced: 0, createdAt: Date.now() });
 }
 
+export async function dropQueued(eventId: string) {
+  await db.queue.delete(eventId);
+}
+
 export async function flushQueue(send: (ev: QueuedEvent) => Promise<void>) {
   const pending = await db.queue.where("synced").equals(0).sortBy("createdAt");
   for (const ev of pending) {

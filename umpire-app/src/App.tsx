@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { getToken } from "./api";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { clearToken, getToken } from "./api";
 import { Login } from "./pages/Login";
 import { Matches } from "./pages/Matches";
 import { Setup } from "./pages/Setup";
@@ -15,17 +15,32 @@ function Guard({ children }: { children: ReactNode }) {
 
 export function App() {
   const nav = useNavigate();
+  const loc = useLocation();
+  const signedIn = Boolean(getToken()) && loc.pathname !== "/login";
+
+  function signOut() {
+    clearToken();
+    nav("/login", { replace: true });
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => nav("/")}>
+        <button className="brand" onClick={() => nav(signedIn ? "/" : "/login")}>
           <span className="mark"><WolfLogo /></span>
           <span className="brand-copy">
             <strong>Wolfpack</strong>
             <span>Umpire</span>
           </span>
         </button>
-        <ThemeToggle />
+        <div className="topbar-actions">
+          <ThemeToggle />
+          {signedIn && (
+            <button className="theme-toggle" type="button" onClick={signOut}>
+              Sign out
+            </button>
+          )}
+        </div>
       </header>
       <Routes>
         <Route path="/login" element={<Login />} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   applyDelivery,
@@ -18,7 +18,7 @@ import {
   undoLastDelivery
 } from "@lms/shared";
 import { api } from "../api";
-import { enqueue, flushQueue } from "../db";
+import { enqueue, dropQueued, flushQueue } from "../db";
 
 const DISMISSALS: DismissalType[] = [
   "BOWLED",
@@ -73,6 +73,20 @@ export function Score() {
   const [woReason, setWoReason] = useState("Opponent did not show");
   const [streamUrl, setStreamUrl] = useState("");
   const [streamMsg, setStreamMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+
+  function lock() {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setBusy(true);
+    return true;
+  }
+
+  function unlock() {
+    busyRef.current = false;
+    setBusy(false);
+  }
 
   async function reload() {
     const row = await api.match(id!);
@@ -105,38 +119,44 @@ export function Score() {
 
   async function commit(partial: Partial<ScoringInput>) {
     if (!state || !inn) return;
+    if (!lock()) return;
     setError("");
-    const input: ScoringInput = {
-      eventId: crypto.randomUUID(),
-      strikerId: inn.current.strikerId ?? "",
-      nonStrikerId: inn.current.nonStrikerId ?? "",
-      bowlerId: inn.current.bowlerId ?? "",
-      batRuns: 0,
-      extraType: "NONE",
-      scoredByUserId: "umpire",
-      overrideConstraints: false,
-      ...partial
-    };
-    const local = applyDelivery(state, input);
-    if (!local.ok) {
-      setError(local.error.message);
-      return;
-    }
-    setState(local.state);
-    setExtra("NONE");
-    setWicketOpen(false);
-    await enqueue({ eventId: input.eventId, matchId: id!, path: "deliveries", body: input });
     try {
-      const res = await api.delivery(id!, input);
-      if (res.state) setState(res.state);
-      setOffline(false);
-    } catch (e) {
-      setOffline(true);
-      if (e instanceof Error && !e.message.includes("fetch")) setError(e.message);
+      const input: ScoringInput = {
+        eventId: crypto.randomUUID(),
+        strikerId: inn.current.strikerId ?? "",
+        nonStrikerId: inn.current.nonStrikerId ?? "",
+        bowlerId: inn.current.bowlerId ?? "",
+        batRuns: 0,
+        extraType: "NONE",
+        scoredByUserId: "umpire",
+        overrideConstraints: false,
+        ...partial
+      };
+      const local = applyDelivery(state, input);
+      if (!local.ok) {
+        setError(local.error.message);
+        return;
+      }
+      setState(local.state);
+      setExtra("NONE");
+      setWicketOpen(false);
+      await enqueue({ eventId: input.eventId, matchId: id!, path: "deliveries", body: input });
+      try {
+        const res = await api.delivery(id!, input);
+        if (res.state) setState(res.state);
+        setOffline(false);
+      } catch (e) {
+        setOffline(true);
+        if (e instanceof Error && !e.message.includes("fetch")) setError(e.message);
+      }
+    } finally {
+      unlock();
     }
   }
 
   function tapRun(n: number) {
+    if (busyRef.current) return;
     if (extra === "WIDE") return commit({ extraType: "WIDE", batRuns: n });
     if (extra === "NO_BALL") return commit({ extraType: "NO_BALL", batRuns: n });
     if (extra === "BYE") return commit({ extraType: "BYE", byeRuns: n || 1, batRuns: n || 1 });
@@ -145,14 +165,21 @@ export function Score() {
   }
 
   async function undo() {
-    if (!state) return;
-    const local = undoLastDelivery(state, "umpire");
-    if (local.ok) setState(local.state);
+    if (!state || !lock()) return;
+    setError("");
+    const last = state.innings
+      .flatMap((i) => i.deliveries.filter((d) => !d.undone))
+      .at(-1);
     try {
+      if (last) await dropQueued(last.eventId);
+      const local = undoLastDelivery(state, "umpire");
+      if (local.ok) setState(local.state);
       const res = await api.undo(id!);
       if (res.state) setState(res.state);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Undo failed");
+    } finally {
+      unlock();
     }
   }
 
@@ -170,6 +197,8 @@ export function Score() {
     inn?.kind !== "SUPER_OVER" &&
     !inn?.isComplete &&
     inn!.legalBalls === state.config.rules.oversPerInnings * bp - 1;
+  const scoringOpen = isScoringStatus(state.status) && !inn?.isComplete;
+  const hasUndoableBall = state.innings.some((i) => i.deliveries.some((d) => !d.undone));
 
   return (
     <div>
@@ -177,7 +206,8 @@ export function Score() {
         <Link to="/" className="tiny">
           ← Matches
         </Link>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {busy && <span className="pill fh">Saving</span>}
           {offline && <span className="pill off">Offline</span>}
           {fh && <span className="pill fh">Free Hit</span>}
           {isScoringStatus(state.status) && <span className="pill live">Live</span>}
@@ -238,48 +268,6 @@ export function Score() {
         </div>
       </div>
 
-      <div className="card" style={{ margin: "0 12px 10px" }}>
-        <strong>YouTube stream</strong>
-        <p className="tiny">Paste a YouTube link any time. The public match page shows it live.</p>
-        <input
-          className="input"
-          style={{ marginTop: 8 }}
-          placeholder="https://youtube.com/watch?v=…"
-          value={streamUrl}
-          onChange={(e) => setStreamUrl(e.target.value)}
-        />
-        <div className="row-actions" style={{ marginTop: 8 }}>
-          <button
-            className="btn lime"
-            onClick={async () => {
-              try {
-                await api.stream(id!, streamUrl);
-                setStreamMsg(streamUrl.trim() ? "Stream is live on the public page" : "Stream removed");
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Could not save stream");
-              }
-            }}
-          >
-            Save stream
-          </button>
-          <button
-            className="btn ghost"
-            onClick={async () => {
-              setStreamUrl("");
-              try {
-                await api.stream(id!, "");
-                setStreamMsg("Stream removed");
-              } catch (e) {
-                setError(e instanceof Error ? e.message : "Could not clear stream");
-              }
-            }}
-          >
-            Clear
-          </button>
-        </div>
-        {streamMsg && <p className="tiny" style={{ marginTop: 6 }}>{streamMsg}</p>}
-      </div>
-
       {error && <p className="error">{error}</p>}
 
       {state.status === "SUPER_OVER" && (
@@ -295,30 +283,31 @@ export function Score() {
 
       {state.status === "INNINGS_BREAK" && (
         <div className="pad">
-          <button className="btn lime" style={{ width: "100%" }} onClick={() => setSecondOpen(true)}>
+          <button className="btn lime" style={{ width: "100%" }} disabled={busy} onClick={() => setSecondOpen(true)}>
             Start 2nd innings (target {state.target})
           </button>
         </div>
       )}
 
-      {isScoringStatus(state.status) && !inn?.isComplete && (
-        <div className="pad">
+      {scoringOpen && (
+        <div className={`pad ${busy ? "locked" : ""}`}>
+          {busy && <p className="score-lock">Wait — ball is saving</p>}
           <div className="grid">
             {[0, 1, 2, 3, 4, 6].map((n) => (
-              <button key={n} className={`btn ${n === 4 || n === 6 ? "lime" : ""}`} onClick={() => tapRun(n)}>
+              <button key={n} className={`btn ${n === 4 || n === 6 ? "lime" : ""}`} disabled={busy} onClick={() => tapRun(n)}>
                 {n}
               </button>
             ))}
           </div>
           <div className="extras">
             {(["WIDE", "NO_BALL", "BYE", "LEG_BYE"] as ExtraType[]).map((t) => (
-              <button key={t} className={`btn ghost ${extra === t ? "on" : ""}`} onClick={() => setExtra(extra === t ? "NONE" : t)}>
+              <button key={t} className={`btn ghost ${extra === t ? "on" : ""}`} disabled={busy} onClick={() => setExtra(extra === t ? "NONE" : t)}>
                 {t === "NO_BALL" ? "No Ball" : t === "LEG_BYE" ? "Leg Bye" : t[0] + t.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
           <div className="row-actions">
-            <button className="btn hot" onClick={() => {
+            <button className="btn hot" disabled={busy} onClick={() => {
               setDismissal("BOWLED");
               setDismissed(inn?.current.strikerId ?? "");
               setCompletedRuns(0);
@@ -327,13 +316,13 @@ export function Score() {
             }}>
               Wicket
             </button>
-            <button className="btn ghost" onClick={() => {
+            <button className="btn ghost" disabled={busy} onClick={() => {
               setInjuredPlayer(inn?.current.strikerId ?? "");
               setInjuryOpen(true);
             }}>
               Injured
             </button>
-            <button className="btn ghost" onClick={undo}>
+            <button className="btn ghost" disabled={busy} onClick={undo}>
               Undo last
             </button>
           </div>
@@ -394,16 +383,17 @@ export function Score() {
             <button
               className="btn lime"
               style={{ width: "100%", marginTop: 12 }}
-              disabled={soBatters.length !== 3 || !soStriker || !soNon || soStriker === soNon || !soBowler}
+              disabled={busy || soBatters.length !== 3 || !soStriker || !soNon || soStriker === soNon || !soBowler}
               onClick={async () => {
-                const local = startSuperOverInnings(state, {
-                  batterIds: soBatters,
-                  strikerId: soStriker,
-                  nonStrikerId: soNon,
-                  bowlerId: soBowler
-                }, "umpire");
-                if (local.ok) setState(local.state);
+                if (!lock()) return;
                 try {
+                  const local = startSuperOverInnings(state, {
+                    batterIds: soBatters,
+                    strikerId: soStriker,
+                    nonStrikerId: soNon,
+                    bowlerId: soBowler
+                  }, "umpire");
+                  if (local.ok) setState(local.state);
                   const res = await api.superOver(id!, {
                     batterIds: soBatters,
                     strikerId: soStriker,
@@ -417,6 +407,8 @@ export function Score() {
                   setSoBowler("");
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Failed");
+                } finally {
+                  unlock();
                 }
               }}
             >
@@ -433,9 +425,20 @@ export function Score() {
         </div>
       )}
 
+      {!scoringOpen && hasUndoableBall && state.status !== "PUBLISHED" && (
+        <div className="pad">
+          <button className="btn ghost" style={{ width: "100%" }} disabled={busy} onClick={undo}>
+            Undo last ball
+          </button>
+          <p className="tiny" style={{ marginTop: 8 }}>
+            Undo the last ball, then enter the correct runs, extra, or wicket again.
+          </p>
+        </div>
+      )}
+
       {state.status !== "COMPLETE" && state.status !== "PUBLISHED" && payload?.match && (
         <div className="pad">
-          <button className="btn ghost" style={{ width: "100%" }} onClick={() => {
+          <button className="btn ghost" style={{ width: "100%" }} disabled={busy} onClick={() => {
             setWoWinner(payload.match.team1Id);
             setWalkoverOpen(true);
           }}>
@@ -443,6 +446,48 @@ export function Score() {
           </button>
         </div>
       )}
+
+      <div className="card" style={{ margin: "0 12px 10px" }}>
+        <strong>YouTube stream</strong>
+        <p className="tiny">Paste a YouTube link any time. The public match page shows it live.</p>
+        <input
+          className="input"
+          style={{ marginTop: 8 }}
+          placeholder="https://youtube.com/watch?v=…"
+          value={streamUrl}
+          onChange={(e) => setStreamUrl(e.target.value)}
+        />
+        <div className="row-actions" style={{ marginTop: 8 }}>
+          <button
+            className="btn lime"
+            onClick={async () => {
+              try {
+                await api.stream(id!, streamUrl);
+                setStreamMsg(streamUrl.trim() ? "Stream is live on the public page" : "Stream removed");
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Could not save stream");
+              }
+            }}
+          >
+            Save stream
+          </button>
+          <button
+            className="btn ghost"
+            onClick={async () => {
+              setStreamUrl("");
+              try {
+                await api.stream(id!, "");
+                setStreamMsg("Stream removed");
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Could not clear stream");
+              }
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        {streamMsg && <p className="tiny" style={{ marginTop: 6 }}>{streamMsg}</p>}
+      </div>
 
       {wicketOpen && inn && (
         <div className="sheet" onClick={() => setWicketOpen(false)}>
@@ -496,7 +541,7 @@ export function Score() {
             <button
               className="btn hot"
               style={{ width: "100%", marginTop: 12 }}
-              disabled={!dismissed || (dismissal === "CAUGHT" && !catcher)}
+              disabled={busy || !dismissed || (dismissal === "CAUGHT" && !catcher)}
               onClick={() => {
                 const isRunOutKind = dismissal === "RUN_OUT" || dismissal === "MANKAD" || dismissal === "OBSTRUCTING_THE_FIELD";
                 commit({
@@ -530,7 +575,7 @@ export function Score() {
             <button
               className="btn"
               style={{ width: "100%", marginTop: 12 }}
-              disabled={!injuredPlayer}
+              disabled={busy || !injuredPlayer}
               onClick={() => {
                 commit({ injuryRetirement: { playerId: injuredPlayer } });
                 setInjuryOpen(false);
@@ -563,14 +608,18 @@ export function Score() {
               <button
                 key={pid}
                 className="choice"
+                disabled={busy}
                 onClick={async () => {
-                  const local = selectReplacementBatter(state, pid, "umpire");
-                  if (local.ok) setState(local.state);
+                  if (!lock()) return;
                   try {
+                    const local = selectReplacementBatter(state, pid, "umpire");
+                    if (local.ok) setState(local.state);
                     const res = await api.selectBatter(id!, pid);
                     if (res.state) setState(res.state);
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "Failed");
+                  } finally {
+                    unlock();
                   }
                 }}
               >
@@ -595,15 +644,18 @@ export function Score() {
                 <button
                   key={pid}
                   className="choice"
-                  disabled={prev || used}
+                  disabled={busy || prev || used}
                   onClick={async () => {
-                    const local = selectNextBowler(state, pid, "umpire", false);
-                    if (local.ok) setState(local.state);
+                    if (!lock()) return;
                     try {
+                      const local = selectNextBowler(state, pid, "umpire", false);
+                      if (local.ok) setState(local.state);
                       const res = await api.selectBowler(id!, pid, false);
                       if (res.state) setState(res.state);
                     } catch (e) {
                       setError(e instanceof Error ? e.message : "Failed");
+                    } finally {
+                      unlock();
                     }
                   }}
                 >
@@ -647,10 +699,12 @@ export function Score() {
                   <button
                     className="btn lime"
                     style={{ width: "100%", marginTop: 12 }}
+                    disabled={busy || !striker2 || !non2 || !bowl2}
                     onClick={async () => {
-                      const local = startSecondInnings(state, striker2, non2, bowl2, "umpire");
-                      if (local.ok) setState(local.state);
+                      if (!lock()) return;
                       try {
+                        const local = startSecondInnings(state, striker2, non2, bowl2, "umpire");
+                        if (local.ok) setState(local.state);
                         const res = await api.startInnings(id!, {
                           inningsNumber: 2,
                           strikerId: striker2,
@@ -661,6 +715,8 @@ export function Score() {
                         setSecondOpen(false);
                       } catch (e) {
                         setError(e instanceof Error ? e.message : "Failed");
+                      } finally {
+                        unlock();
                       }
                     }}
                   >
@@ -685,14 +741,17 @@ export function Score() {
             <button
               className="btn hot"
               style={{ width: "100%", marginTop: 12 }}
-              disabled={!woWinner || !woReason.trim()}
+              disabled={busy || !woWinner || !woReason.trim()}
               onClick={async () => {
+                if (!lock()) return;
                 try {
                   const res = await api.walkover(id!, { winnerTeamId: woWinner, reason: woReason.trim() });
                   if (res.state) setState(res.state);
                   setWalkoverOpen(false);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Walkover failed");
+                } finally {
+                  unlock();
                 }
               }}
             >

@@ -91,6 +91,7 @@ export function createMatch(config: MatchConfig): MatchState {
     resultType: null,
     resultSummary: null,
     appliedEventIds: [],
+    cancelledEventIds: [],
     audit: []
   };
 }
@@ -645,7 +646,7 @@ function applyInjuryRetirement(next: MatchState, inn: InningsState, input: Scori
 }
 
 export function applyDelivery(state: MatchState, input: ScoringInput): ApplyResult {
-  if (state.appliedEventIds.includes(input.eventId)) {
+  if ((state.cancelledEventIds ?? []).includes(input.eventId) || state.appliedEventIds.includes(input.eventId)) {
     const existing = state.innings.flatMap((i) => i.deliveries).find((d) => d.eventId === input.eventId) ?? null;
     return { ok: true, state, delivery: existing, duplicate: true };
   }
@@ -1062,6 +1063,7 @@ export function undoLastDelivery(state: MatchState, userId: string): ApplyResult
   if (all.length === 0) return fail(next, "INVALID_INPUT", "Nothing to undo");
   const last = all[all.length - 1];
   last.delivery.undone = true;
+  next.cancelledEventIds = [...(next.cancelledEventIds ?? []), last.delivery.eventId];
   audit(next, "UNDO", userId, `Undid delivery ${last.delivery.eventId}`);
   const replayed = replayMatch(next);
   return { ok: true, state: replayed, delivery: last.delivery };
@@ -1111,8 +1113,13 @@ function deliveryToInput(d: DeliveryRecord): ScoringInput {
 }
 
 export function replayMatch(state: MatchState): MatchState {
+  const cancelledEventIds = [...new Set([
+    ...(state.cancelledEventIds ?? []),
+    ...state.innings.flatMap((i) => i.deliveries.filter((d) => d.undone).map((d) => d.eventId))
+  ])];
   const setup = createMatch(state.config);
   setup.audit = [...state.audit];
+  setup.cancelledEventIds = cancelledEventIds;
   if (state.toss) {
     const r = recordToss(setup, state.toss.winnerTeamId, state.toss.decision, "system");
     if (r.ok) Object.assign(setup, r.state);

@@ -211,7 +211,12 @@ export async function applyScoring(matchId: string, input: ScoringInput) {
   const existing = await prisma.delivery.findUnique({ where: { eventId: input.eventId } });
   if (existing) {
     const match = await loadMatch(matchId);
-    return { duplicate: true, snapshot: match?.snapshot, delivery: existing };
+    return {
+      duplicate: true,
+      snapshot: match?.snapshot,
+      state: match ? getState(match) : undefined,
+      delivery: existing
+    };
   }
   const match = await loadMatch(matchId);
   if (!match) throw Object.assign(new Error("Match not found"), { status: 404 });

@@ -472,6 +472,25 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(inn(s).bowlers.f1.runsConceded).toBe(before.innings[0].bowlers.f1.runsConceded);
   });
 
+  it("undo then the same event ID cannot add those runs again", () => {
+    let s = createReadyInnings({});
+    const four = { eventId: "ball-4", batRuns: 4 as const };
+    s = must(s, four);
+    expect(inn(s).totalRuns).toBe(4);
+    const undone = undoLastDelivery(s, "ump");
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) return;
+    s = undone.state;
+    expect(inn(s).totalRuns).toBe(0);
+    const again = play(s, four);
+    expect(again.ok).toBe(true);
+    if (!again.ok) return;
+    expect(again.duplicate).toBe(true);
+    expect(inn(again.state).totalRuns).toBe(0);
+    s = must(again.state, { eventId: "ball-4-retry", batRuns: 4 });
+    expect(inn(s).totalRuns).toBe(4);
+  });
+
   it("duplicate event ID is applied only once", () => {
     let s = createReadyInnings({});
     const input = {
