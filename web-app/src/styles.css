@@ -276,8 +276,13 @@ html.overlay-mode,
 html.overlay-mode body,
 html.overlay-mode #root {
   background: transparent !important;
-  overflow: hidden;
-  min-height: 100%;
+  overflow: hidden !important;
+  max-width: none !important;
+  width: 100% !important;
+  min-height: 100% !important;
+}
+html.overlay-mode img,
+html.overlay-mode svg {
   max-width: none;
 }
 html.overlay-preview,
@@ -300,18 +305,21 @@ html.overlay-preview #root {
   justify-content: center;
   padding: 0 24px 22px;
   pointer-events: none;
+  overflow: visible;
   font-family: Figtree, system-ui, sans-serif;
 }
 .score-bug {
-  display: flex;
-  align-items: stretch;
-  width: fit-content;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: max-content;
   max-width: none;
+  align-items: stretch;
   background: rgba(8, 12, 9, 0.94);
   color: #f3f6ef;
   border: 1px solid #d6ff3f;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 .score-bug-brand {
@@ -319,51 +327,39 @@ html.overlay-preview #root {
   place-items: center;
   padding: 0 12px;
   background: #d6ff3f;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  border-radius: 7px 0 0 7px;
 }
-.score-bug-brand .wolf-logo { width: 28px; height: 28px; object-fit: contain; }
+.score-bug-brand .wolf-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  max-width: none;
+}
 .score-bug-body {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  overflow: visible;
+  width: max-content;
 }
 .score-bug-row {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
-  padding: 5px 12px;
+  gap: 8px;
+  padding: 6px 12px;
   white-space: nowrap;
-  flex-shrink: 0;
+  width: max-content;
 }
 .score-bug-row-2 {
   padding-top: 0;
-  padding-bottom: 6px;
-  gap: 8px;
+  padding-bottom: 7px;
+  font-size: 12px;
+  font-weight: 700;
   border-top: 1px solid rgba(214, 255, 63, 0.18);
-}
-.score-bug-teams {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.score-bug-team {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  line-height: 1;
 }
 .score-bug-code { font-weight: 800; font-size: 13px; letter-spacing: 0.04em; }
 .score-bug-score { font-size: 16px; font-weight: 700; }
-.score-bug-now {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 800;
-  flex-shrink: 0;
-}
 .score-bug-tag {
   background: #d6ff3f;
   color: #111;
@@ -383,33 +379,21 @@ html.overlay-preview #root {
   font-weight: 800;
 }
 .score-bug-chase {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  background: rgba(214, 255, 63, 0.14);
+  background: rgba(214, 255, 63, 0.16);
+  color: #d6ff3f;
   border-radius: 4px;
   padding: 2px 8px;
-  flex-shrink: 0;
-}
-.score-bug-need {
-  font-size: 16px;
-  color: #d6ff3f;
+  font-size: 12px;
   font-weight: 800;
-  line-height: 1;
 }
-.score-bug-over {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
+.score-bug-chase b { font-size: 15px; font-weight: 800; }
 .score-bug-empty { font-size: 11px; color: #93a090; font-weight: 700; }
 .score-bug-ball {
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
   border-radius: 4px;
-  display: grid;
+  display: inline-grid;
   place-items: center;
   background: #222a23;
   font-weight: 800;
@@ -418,25 +402,10 @@ html.overlay-preview #root {
 .score-bug-ball.four { background: #d6ff3f; color: #111; }
 .score-bug-ball.w { background: #ff4d6d; color: #fff; }
 .score-bug-ball.hr { background: #3dffc8; color: #111; }
-.score-bug-pair {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.score-bug-label {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #d6ff3f;
-}
-.score-bug-pair .on { color: #d6ff3f; }
+.score-bug-row-2 .on { color: #d6ff3f; }
 .score-bug-sep {
   width: 1px;
   height: 14px;
   background: rgba(214, 255, 63, 0.35);
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
