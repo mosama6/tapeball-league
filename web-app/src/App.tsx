@@ -229,7 +229,7 @@ function MatchPage() {
                 </div>
               )}
               <div className="balls">
-                {s.lastSixBalls?.map((d: any) => (
+                {(s.thisOverBalls ?? []).map((d: any) => (
                   <div key={d.eventId} className={`ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns >= 4 ? "four" : ""}`}>
                     {d.isHomeRun ? "HR" : d.isWicket ? "W" : d.extraType === "WIDE" ? "Wd" : d.extraType === "NO_BALL" ? "Nb" : d.batRuns}
                   </div>

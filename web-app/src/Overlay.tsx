@@ -78,7 +78,7 @@ export function ScoreOverlay() {
   const live = ["FIRST_INNINGS", "SECOND_INNINGS", "SUPER_OVER"].includes(data?.status);
   const striker = s?.currentBatsmen?.find((b: any) => b.isStriker);
   const non = s?.currentBatsmen?.find((b: any) => !b.isStriker);
-  const balls = s?.thisOverBalls?.length ? s.thisOverBalls : s?.lastSixBalls ?? [];
+  const balls = s?.thisOverBalls ?? [];
   const chase =
     s?.target != null
       ? `Need ${s.runsNeeded ?? Math.max(0, s.target - s.runs)} off ${s.ballsRemaining ?? "—"}`
@@ -96,6 +96,7 @@ export function ScoreOverlay() {
             <span className="score-bug-code">{s?.team1.shortName ?? data?.team1?.shortName ?? "—"}</span>
             <span className="score-bug-score num">{scoreOnly(s?.team1.score)}</span>
           </div>
+          <span className="score-bug-sep" />
           <div className="score-bug-team">
             <span className="score-bug-code">{s?.team2.shortName ?? data?.team2?.shortName ?? "—"}</span>
             <span className="score-bug-score num">{scoreOnly(s?.team2.score)}</span>
@@ -104,42 +105,39 @@ export function ScoreOverlay() {
 
         <div className="score-bug-col score-bug-live-col">
           {live && s ? (
-            <>
-              <div className="score-bug-now">
-                <span className="score-bug-tag">{s.isSuperOver ? "SO" : "LIVE"}</span>
-                <span className="num">
-                  {s.runs}/{s.wickets}
-                </span>
-                <span className="score-bug-ov">{s.overs} ov</span>
-                {s.isFreeHit && <span className="score-bug-fh">FH</span>}
-              </div>
-              {chase && <div className="score-bug-need">{chase}</div>}
-            </>
+            <div className="score-bug-now">
+              <span className="score-bug-tag">{s.isSuperOver ? "SO" : "LIVE"}</span>
+              <span className="num">
+                {s.runs}/{s.wickets}
+              </span>
+              <span className="score-bug-ov">{s.overs} ov</span>
+              {s.isFreeHit && <span className="score-bug-fh">FH</span>}
+              {chase && <span className="score-bug-need">{chase}</span>}
+            </div>
           ) : (
             <div className="score-bug-now">{data?.resultSummary || s?.resultSummary || "Wolfpack"}</div>
           )}
         </div>
 
-        {live && (
-          <div className="score-bug-col score-bug-over">
-            {balls.length === 0 && <span className="score-bug-empty">This over</span>}
-            {balls.map((d: any) => (
-              <span
-                key={d.eventId}
-                className={`score-bug-ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns >= 4 ? "four" : ""}`}
-              >
-                {ballText(d)}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="score-bug-col score-bug-over">
+          <span className="score-bug-label">Over</span>
+          {balls.length === 0 && <span className="score-bug-empty">—</span>}
+          {balls.map((d: any) => (
+            <span
+              key={d.eventId}
+              className={`score-bug-ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns >= 4 ? "four" : ""}`}
+            >
+              {ballText(d)}
+            </span>
+          ))}
+        </div>
 
         {live && (
-          <div className="score-bug-row2">
-            <div className="score-bug-pair">
+          <>
+            <div className="score-bug-col score-bug-pair">
               <span className="score-bug-label">Bat</span>
               {striker ? (
-                <span className={striker.isStriker ? "on" : ""}>
+                <span className="on">
                   ★ {firstName(striker.name)} {striker.runs}({striker.balls})
                 </span>
               ) : (
@@ -154,7 +152,7 @@ export function ScoreOverlay() {
                 <span>—</span>
               )}
             </div>
-            <div className="score-bug-pair">
+            <div className="score-bug-col score-bug-pair">
               <span className="score-bug-label">Bowl</span>
               {s?.currentBowler ? (
                 <span>
@@ -164,7 +162,7 @@ export function ScoreOverlay() {
                 <span>—</span>
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
