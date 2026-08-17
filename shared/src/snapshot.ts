@@ -156,6 +156,11 @@ export function buildSnapshot(state: MatchState): LiveSnapshot {
   const lastSix = live
     ? live.deliveries.filter((d) => !d.undone && !d.isInjuryRetirement).slice(-6)
     : [];
+  const thisOverBalls = live
+    ? live.deliveries.filter(
+        (d) => !d.undone && !d.isInjuryRetirement && d.overNumber === live.current.overNumber + 1
+      )
+    : [];
 
   return {
     matchId: state.config.matchId,
@@ -189,6 +194,7 @@ export function buildSnapshot(state: MatchState): LiveSnapshot {
     currentBowler,
     partnership: live?.partnerships.find((p) => p.active) ?? null,
     lastSixBalls: lastSix,
+    thisOverBalls,
     extras: live?.extras ?? { wides: 0, noBalls: 0, byes: 0, legByes: 0, penalties: 0, total: 0 },
     isFreeHit: live?.current.isFreeHit ?? false,
     pendingReplacement: live?.pendingReplacement ?? null,

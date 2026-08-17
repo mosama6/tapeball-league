@@ -418,6 +418,7 @@ export interface LiveSnapshot {
   currentBowler: BowlerCard | null;
   partnership: Partnership | null;
   lastSixBalls: DeliveryRecord[];
+  thisOverBalls: DeliveryRecord[];
   extras: ExtrasBreakdown;
   isFreeHit: boolean;
   pendingReplacement: PendingReplacement | null;
