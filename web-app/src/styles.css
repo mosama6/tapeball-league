@@ -305,8 +305,8 @@ html.overlay-preview #root {
 .score-bug {
   display: flex;
   align-items: stretch;
-  width: max-content;
-  max-width: min(920px, 58vw);
+  width: fit-content;
+  max-width: none;
   background: rgba(8, 12, 9, 0.94);
   color: #f3f6ef;
   border: 1px solid #d6ff3f;
@@ -325,8 +325,8 @@ html.overlay-preview #root {
 .score-bug-body {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  overflow: visible;
 }
 .score-bug-row {
   display: flex;
@@ -386,7 +386,6 @@ html.overlay-preview #root {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin-left: auto;
   background: rgba(214, 255, 63, 0.14);
   border-radius: 4px;
   padding: 2px 8px;
@@ -425,7 +424,7 @@ html.overlay-preview #root {
   gap: 8px;
   font-size: 12px;
   font-weight: 700;
-  min-width: 0;
+  flex-shrink: 0;
 }
 .score-bug-label {
   font-size: 9px;

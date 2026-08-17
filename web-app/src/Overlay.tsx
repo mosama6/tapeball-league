@@ -75,13 +75,14 @@ export function ScoreOverlay() {
   }, [id]);
 
   const s = data?.snapshot;
-  const live = ["FIRST_INNINGS", "SECOND_INNINGS", "SUPER_OVER"].includes(data?.status);
+  const status = s?.status ?? data?.status;
+  const live = ["FIRST_INNINGS", "SECOND_INNINGS", "SUPER_OVER"].includes(status);
   const striker = s?.currentBatsmen?.find((b: any) => b.isStriker);
   const non = s?.currentBatsmen?.find((b: any) => !b.isStriker);
   const balls = s?.thisOverBalls ?? [];
-  const chase = live && s?.target != null;
-
-  const needRuns = chase && s ? (s.runsNeeded ?? Math.max(0, (s.target ?? 0) - s.runs)) : null;
+  const target = s?.target ?? data?.targetRuns ?? null;
+  const chase = live && target != null;
+  const needRuns = chase && s ? (s.runsNeeded ?? Math.max(0, target - s.runs)) : null;
   const needBalls = chase && s ? (s.ballsRemaining ?? "—") : null;
 
   return (
