@@ -81,6 +81,9 @@ export function ScoreOverlay() {
   const balls = s?.thisOverBalls ?? [];
   const chase = live && s?.target != null;
 
+  const needRuns = chase && s ? (s.runsNeeded ?? Math.max(0, (s.target ?? 0) - s.runs)) : null;
+  const needBalls = chase && s ? (s.ballsRemaining ?? "—") : null;
+
   return (
     <div className={`score-overlay${preview ? " preview" : ""}`}>
       <div className="score-bug">
@@ -88,86 +91,83 @@ export function ScoreOverlay() {
           <WolfLogo />
         </div>
 
-        <div className="score-bug-col score-bug-teams">
-          <div className="score-bug-team">
-            <span className="score-bug-code">{s?.team1.shortName ?? data?.team1?.shortName ?? "—"}</span>
-            <span className="score-bug-score num">{scoreOnly(s?.team1.score)}</span>
-          </div>
-          <span className="score-bug-sep" />
-          <div className="score-bug-team">
-            <span className="score-bug-code">{s?.team2.shortName ?? data?.team2?.shortName ?? "—"}</span>
-            <span className="score-bug-score num">{scoreOnly(s?.team2.score)}</span>
-          </div>
-        </div>
-
-        <div className="score-bug-col score-bug-live-col">
-          {live && s ? (
-            <div className="score-bug-now">
-              <span className="score-bug-tag">{s.isSuperOver ? "SO" : "LIVE"}</span>
-              <span className="num">
-                {s.runs}/{s.wickets}
-              </span>
-              <span className="score-bug-ov">{s.overs} ov</span>
-              {s.isFreeHit && <span className="score-bug-fh">FH</span>}
-            </div>
-          ) : (
-            <div className="score-bug-now">{data?.resultSummary || s?.resultSummary || "Wolfpack"}</div>
-          )}
-        </div>
-
-        {chase && s && (
-          <div className="score-bug-col score-bug-chase">
-            <span className="score-bug-label">Need</span>
-            <span className="score-bug-need num">{s.runsNeeded ?? Math.max(0, (s.target ?? 0) - s.runs)}</span>
-            <span className="score-bug-ov">runs from {s.ballsRemaining ?? "—"} balls</span>
-          </div>
-        )}
-
-        <div className="score-bug-col score-bug-over">
-          <span className="score-bug-label">Over</span>
-          {balls.length === 0 && <span className="score-bug-empty">—</span>}
-          {balls.map((d: any) => (
-            <span
-              key={d.eventId}
-              className={`score-bug-ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns >= 4 ? "four" : ""}`}
-            >
-              {ballText(d)}
-            </span>
-          ))}
-        </div>
-
-        {live && (
-          <>
-            <div className="score-bug-col score-bug-pair">
-              <span className="score-bug-label">Bat</span>
-              {striker ? (
-                <span className="on">
-                  ★ {firstName(striker.name)} {striker.runs}({striker.balls})
-                </span>
-              ) : (
-                <span>—</span>
-              )}
+        <div className="score-bug-body">
+          <div className="score-bug-row">
+            <div className="score-bug-teams">
+              <div className="score-bug-team">
+                <span className="score-bug-code">{s?.team1.shortName ?? data?.team1?.shortName ?? "—"}</span>
+                <span className="score-bug-score num">{scoreOnly(s?.team1.score)}</span>
+              </div>
               <span className="score-bug-sep" />
-              {non ? (
-                <span>
-                  {firstName(non.name)} {non.runs}({non.balls})
-                </span>
-              ) : (
-                <span>—</span>
-              )}
+              <div className="score-bug-team">
+                <span className="score-bug-code">{s?.team2.shortName ?? data?.team2?.shortName ?? "—"}</span>
+                <span className="score-bug-score num">{scoreOnly(s?.team2.score)}</span>
+              </div>
             </div>
-            <div className="score-bug-col score-bug-pair">
-              <span className="score-bug-label">Bowl</span>
-              {s?.currentBowler ? (
-                <span>
-                  {firstName(s.currentBowler.name)} {s.currentBowler.wickets}-{s.currentBowler.runs} ({s.currentBowler.overs})
+
+            {live && s ? (
+              <div className="score-bug-now">
+                <span className="score-bug-tag">{s.isSuperOver ? "SO" : "LIVE"}</span>
+                <span className="score-bug-ov">{s.overs} ov</span>
+                {s.isFreeHit && <span className="score-bug-fh">FH</span>}
+              </div>
+            ) : (
+              <div className="score-bug-now">{data?.resultSummary || s?.resultSummary || "Wolfpack"}</div>
+            )}
+
+            {chase && (
+              <div className="score-bug-chase">
+                <span className="score-bug-label">Need</span>
+                <span className="score-bug-need num">{needRuns}</span>
+                <span className="score-bug-ov">off {needBalls}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="score-bug-row score-bug-row-2">
+            <div className="score-bug-over">
+              {balls.length === 0 && <span className="score-bug-empty">This over —</span>}
+              {balls.map((d: any) => (
+                <span
+                  key={d.eventId}
+                  className={`score-bug-ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns >= 4 ? "four" : ""}`}
+                >
+                  {ballText(d)}
                 </span>
-              ) : (
-                <span>—</span>
-              )}
+              ))}
             </div>
-          </>
-        )}
+
+            {live && (
+              <>
+                <span className="score-bug-sep" />
+                <div className="score-bug-pair">
+                  {striker ? (
+                    <span className="on">
+                      ★ {firstName(striker.name)} {striker.runs}({striker.balls})
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                  {non ? (
+                    <span>
+                      {firstName(non.name)} {non.runs}({non.balls})
+                    </span>
+                  ) : null}
+                </div>
+                <span className="score-bug-sep" />
+                <div className="score-bug-pair">
+                  {s?.currentBowler ? (
+                    <span>
+                      {firstName(s.currentBowler.name)} {s.currentBowler.wickets}-{s.currentBowler.runs}
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
