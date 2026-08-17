@@ -297,7 +297,7 @@ html.overlay-preview #root {
   inset: 0;
   display: flex;
   align-items: flex-end;
-  justify-content: stretch;
+  justify-content: center;
   padding: 0 16px 18px;
   pointer-events: none;
   font-family: Figtree, system-ui, sans-serif;
@@ -305,8 +305,8 @@ html.overlay-preview #root {
 .score-bug {
   display: flex;
   align-items: stretch;
-  width: 100%;
-  min-height: 44px;
+  width: min(1180px, 70vw);
+  min-height: 42px;
   background: rgba(8, 12, 9, 0.94);
   color: #f3f6ef;
   border: 1px solid #d6ff3f;
@@ -359,7 +359,6 @@ html.overlay-preview #root {
   border-radius: 3px;
 }
 .score-bug-ov { color: #93a090; font-size: 12px; font-weight: 700; }
-.score-bug-need { font-size: 11px; color: #d6ff3f; font-weight: 700; white-space: nowrap; }
 .score-bug-fh {
   background: #3dffc8;
   color: #0b0f0c;
@@ -369,8 +368,15 @@ html.overlay-preview #root {
   font-weight: 800;
 }
 .score-bug-over {
-  flex: 1 1 auto;
-  min-width: 140px;
+  flex: 0 1 auto;
+}
+.score-bug-chase {
+  background: rgba(214, 255, 63, 0.1);
+}
+.score-bug-need {
+  font-size: 15px;
+  color: #d6ff3f;
+  font-weight: 800;
 }
 .score-bug-empty { font-size: 12px; color: #93a090; font-weight: 700; }
 .score-bug-ball {

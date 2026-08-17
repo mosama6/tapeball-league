@@ -79,10 +79,7 @@ export function ScoreOverlay() {
   const striker = s?.currentBatsmen?.find((b: any) => b.isStriker);
   const non = s?.currentBatsmen?.find((b: any) => !b.isStriker);
   const balls = s?.thisOverBalls ?? [];
-  const chase =
-    s?.target != null
-      ? `Need ${s.runsNeeded ?? Math.max(0, s.target - s.runs)} off ${s.ballsRemaining ?? "—"}`
-      : null;
+  const chase = live && s?.target != null;
 
   return (
     <div className={`score-overlay${preview ? " preview" : ""}`}>
@@ -112,12 +109,19 @@ export function ScoreOverlay() {
               </span>
               <span className="score-bug-ov">{s.overs} ov</span>
               {s.isFreeHit && <span className="score-bug-fh">FH</span>}
-              {chase && <span className="score-bug-need">{chase}</span>}
             </div>
           ) : (
             <div className="score-bug-now">{data?.resultSummary || s?.resultSummary || "Wolfpack"}</div>
           )}
         </div>
+
+        {chase && s && (
+          <div className="score-bug-col score-bug-chase">
+            <span className="score-bug-label">Need</span>
+            <span className="score-bug-need num">{s.runsNeeded ?? Math.max(0, (s.target ?? 0) - s.runs)}</span>
+            <span className="score-bug-ov">runs from {s.ballsRemaining ?? "—"} balls</span>
+          </div>
+        )}
 
         <div className="score-bug-col score-bug-over">
           <span className="score-bug-label">Over</span>
