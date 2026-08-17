@@ -280,6 +280,18 @@ html.overlay-mode #root {
   min-height: 100%;
   max-width: none;
 }
+html.overlay-preview,
+html.overlay-preview body,
+html.overlay-preview #root {
+  background:
+    radial-gradient(800px 400px at 50% 20%, rgba(214, 255, 63, 0.12), transparent 50%),
+    linear-gradient(180deg, #1a3a22 0%, #0c1810 55%, #071109 100%) !important;
+}
+.score-overlay.preview {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,0.06), transparent 45%),
+    repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,0.04) 46px 48px);
+}
 .score-overlay {
   position: fixed;
   inset: 0;

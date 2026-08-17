@@ -197,6 +197,9 @@ export function Score() {
     inn?.kind !== "SUPER_OVER" &&
     !inn?.isComplete &&
     inn!.legalBalls === state.config.rules.oversPerInnings * bp - 1;
+  const thisOverBalls = (inn?.deliveries ?? []).filter(
+    (d) => !d.undone && !d.isInjuryRetirement && d.overNumber === (inn?.current.overNumber ?? 0) + 1
+  );
   const scoringOpen = isScoringStatus(state.status) && !inn?.isComplete;
   const hasUndoableBall = state.innings.some((i) => i.deliveries.some((d) => !d.undone));
 
@@ -257,7 +260,7 @@ export function Score() {
           </div>
         )}
         <div className="balls">
-          {snap.lastSixBalls.map((d) => (
+          {thisOverBalls.map((d) => (
             <div
               key={d.eventId}
               className={`ball ${d.isHomeRun ? "hr" : d.isWicket ? "w" : d.batRuns === 4 ? "four" : d.batRuns === 6 ? "six" : d.extraType === "WIDE" ? "wd" : d.extraType === "NO_BALL" ? "nb" : ""}`}

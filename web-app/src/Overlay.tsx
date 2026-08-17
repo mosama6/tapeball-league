@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { api } from "./api";
 import { WolfLogo } from "./brand";
@@ -26,16 +26,20 @@ function ballText(d: {
 
 export function ScoreOverlay() {
   const { id } = useParams();
+  const [params] = useSearchParams();
+  const preview = params.has("preview");
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("overlay-mode");
     document.body.classList.add("overlay-mode");
+    if (preview) document.documentElement.classList.add("overlay-preview");
     return () => {
       document.documentElement.classList.remove("overlay-mode");
       document.body.classList.remove("overlay-mode");
+      document.documentElement.classList.remove("overlay-preview");
     };
-  }, []);
+  }, [preview]);
 
   useEffect(() => {
     if (!id) return;
@@ -71,7 +75,7 @@ export function ScoreOverlay() {
       : null;
 
   return (
-    <div className="score-overlay">
+    <div className={`score-overlay${preview ? " preview" : ""}`}>
       <div className="score-bug">
         <div className="score-bug-brand">
           <WolfLogo />
