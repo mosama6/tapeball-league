@@ -176,7 +176,12 @@ api.get("/search", async (req, res) => {
       take: 8
     })
   ]);
-      matches: matches.map((m) => ({ ...m, id: m.no })),
+  res.json({
+    players,
+    teams,
+    tournaments,
+    matches: matches.map((m) => ({ ...m, id: m.no }))
+  });
 });
 
 api.get("/umpire/matches", requireAuth(["UMPIRE", "ADMIN"]), async (req, res) => {
