@@ -18,6 +18,7 @@ import {
   doWalkover,
   getState,
   loadMatch,
+  nextMatchNo,
   publicMatchPayload,
   setStreamUrl
 } from "./services/matchService.js";
@@ -612,6 +613,7 @@ api.post("/admin/fixtures", admin, async (req, res) => {
   });
   const match = await prisma.match.create({
     data: {
+      no: await nextMatchNo(),
       fixtureId: fixture.id,
       tournamentId: body.tournamentId,
       team1Id: body.team1Id,

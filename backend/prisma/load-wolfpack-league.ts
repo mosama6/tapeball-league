@@ -219,6 +219,13 @@ async function main() {
     });
   }
 
+  await prisma.$executeRawUnsafe(`
+    SELECT setval(
+      pg_get_serial_sequence('"Match"', 'no'),
+      (SELECT COALESCE(MAX(no), 1) FROM "Match")
+    )
+  `);
+
   const [teams, players, fixtures, matches, users] = await Promise.all([
     prisma.team.count(),
     prisma.player.count(),

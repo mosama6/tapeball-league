@@ -46,6 +46,11 @@ export async function loadMatch(id: string) {
   return prisma.match.findUnique({ where: { no: Number(id) }, include: matchInclude });
 }
 
+export async function nextMatchNo() {
+  const last = await prisma.match.aggregate({ _max: { no: true } });
+  return (last._max.no ?? 0) + 1;
+}
+
 export function rulesFrom(match: NonNullable<FullMatch>): TournamentRules {
   const r = match.tournament.rules;
   return {
