@@ -263,10 +263,12 @@ export function Admin() {
             <h3>Matches</h3>
             {matches.map((m) => (
               <div className="list-row" key={m.id}>
-                <Link to={`/matches/${m.id}`}>{m.team1.shortName} vs {m.team2.shortName}</Link>
+                  <Link to={m.no != null ? `/matches/${m.no}` : `/matches/${m.id}`}>{m.team1.shortName} vs {m.team2.shortName}</Link>
                 <span className="tiny">
                   {m.status.replaceAll("_", " ")} · {m.oversPerInnings} ov ·{" "}
-                  <Link to={`/overlay/matches/${m.id}`} target="_blank">Overlay</Link>
+                  <Link to={`/overlay/${m.no ?? m.id}`} target="_blank">
+                    Overlay #{m.no ?? m.id}
+                  </Link>
                 </span>
               </div>
             ))}

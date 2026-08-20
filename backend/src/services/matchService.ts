@@ -42,7 +42,8 @@ const matchInclude = {
 export type FullMatch = Awaited<ReturnType<typeof loadMatch>>;
 
 export async function loadMatch(id: string) {
-  return prisma.match.findUnique({ where: { id }, include: matchInclude });
+  if (!/^\d+$/.test(id)) return null;
+  return prisma.match.findUnique({ where: { no: Number(id) }, include: matchInclude });
 }
 
 export function rulesFrom(match: NonNullable<FullMatch>): TournamentRules {
@@ -102,7 +103,12 @@ export function getState(match: NonNullable<FullMatch>): MatchState {
   return state;
 }
 
-async function persist(matchId: string, state: MatchState, userId?: string, action?: string, payload?: unknown) {
+async function persist(ref: string, state: MatchState, userId?: string, action?: string, payload?: unknown) {
+  const row = /^\d+$/.test(ref)
+    ? await prisma.match.findUnique({ where: { no: Number(ref) } })
+    : await prisma.match.findUnique({ where: { id: ref } });
+  if (!row) throw Object.assign(new Error("Match not found"), { status: 404 });
+  const matchId = row.id;
   const snapshot = buildSnapshot(state);
   const last = state.innings[state.innings.length - 1];
   await prisma.$transaction(async (tx) => {
@@ -155,12 +161,12 @@ async function persist(matchId: string, state: MatchState, userId?: string, acti
       });
     }
   });
-  emitMatch(matchId, snapshot);
+  emitMatch(String(row.no), snapshot);
   void (async () => {
     try {
-      const match = await loadMatch(matchId);
+      const match = await loadMatch(String(row.no));
       if (!match) return;
-      emitTournament(match.tournamentId, { matchId });
+      emitTournament(match.tournamentId, { matchId: row.no });
       await recomputeTournamentStats(match.tournamentId);
     } catch (err) {
       console.error("stats recompute failed", err);
@@ -175,7 +181,8 @@ export async function publicMatchPayload(matchId: string) {
   const state = match.engineState ? getState(match) : null;
   const snapshot = state ? buildSnapshot(state) : ((match.snapshot as LiveSnapshot | null) ?? null);
   return {
-    id: match.id,
+    id: match.no,
+    no: match.no,
     status: match.status,
     scheduledAt: match.scheduledAt,
     venue: match.venue,
@@ -192,19 +199,21 @@ export async function publicMatchPayload(matchId: string) {
 }
 
 export async function setStreamUrl(matchId: string, url: string) {
+  const match = await loadMatch(matchId);
+  if (!match) throw Object.assign(new Error("Match not found"), { status: 404 });
   const trimmed = url.trim();
   if (trimmed && !youtubeEmbedUrl(trimmed)) {
     throw Object.assign(new Error("Paste a valid YouTube watch, live, or youtu.be link"), { status: 400 });
   }
-  const match = await prisma.match.update({
-    where: { id: matchId },
+  await prisma.match.update({
+    where: { id: match.id },
     data: { streamUrl: trimmed || null }
   });
-  const payload = await publicMatchPayload(matchId);
+  const payload = await publicMatchPayload(String(match.no));
   if (payload?.snapshot) {
-    emitMatch(matchId, { ...payload.snapshot, streamUrl: payload.streamUrl });
+    emitMatch(String(match.no), { ...payload.snapshot, streamUrl: payload.streamUrl });
   }
-  return { streamUrl: match.streamUrl, snapshot: payload?.snapshot };
+  return { streamUrl: trimmed || null, snapshot: payload?.snapshot };
 }
 
 export async function applyScoring(matchId: string, input: ScoringInput) {
@@ -220,6 +229,7 @@ export async function applyScoring(matchId: string, input: ScoringInput) {
   }
   const match = await loadMatch(matchId);
   if (!match) throw Object.assign(new Error("Match not found"), { status: 404 });
+  const uuid = match.id;
   const state = getState(match);
   const result = applyDelivery(state, input);
   if (!result.ok) {
@@ -230,12 +240,12 @@ export async function applyScoring(matchId: string, input: ScoringInput) {
   }
   const d = result.delivery!;
   const innRow = await prisma.innings.findUnique({
-    where: { matchId_inningsNumber: { matchId, inningsNumber: d.inningsNumber } }
+    where: { matchId_inningsNumber: { matchId: uuid, inningsNumber: d.inningsNumber } }
   });
   await prisma.delivery.create({
     data: {
       eventId: d.eventId,
-      matchId,
+      matchId: uuid,
       inningsId: innRow?.id,
       inningsNumber: d.inningsNumber,
       overNumber: d.overNumber,
@@ -273,14 +283,14 @@ export async function applyScoring(matchId: string, input: ScoringInput) {
   if (d.commentary) {
     await prisma.commentary.create({
       data: {
-        matchId,
+        matchId: uuid,
         eventId: d.eventId,
         text: d.commentary,
         kind: d.isHomeRun ? "HOME_RUN" : d.isWicket ? "WICKET" : "BALL"
       }
     });
   }
-  const snapshot = await persist(matchId, result.state, input.scoredByUserId, "DELIVERY", { eventId: d.eventId });
+  const snapshot = await persist(String(match.no), result.state, input.scoredByUserId, "DELIVERY", { eventId: d.eventId });
   return { snapshot, delivery: d, state: result.state };
 }
 
@@ -296,12 +306,12 @@ export async function runEngine(
   if (!result.ok) return { error: result.error };
   if (action === "PLAYING_XI" && match.playingXI.length === 0 && result.state.playingXI) {
     const rows = [
-      ...result.state.playingXI.team1.map((playerId, i) => ({ matchId, teamId: match.team1Id, playerId, battingOrder: i + 1 })),
-      ...result.state.playingXI.team2.map((playerId, i) => ({ matchId, teamId: match.team2Id, playerId, battingOrder: i + 1 }))
+      ...result.state.playingXI.team1.map((playerId, i) => ({ matchId: match.id, teamId: match.team1Id, playerId, battingOrder: i + 1 })),
+      ...result.state.playingXI.team2.map((playerId, i) => ({ matchId: match.id, teamId: match.team2Id, playerId, battingOrder: i + 1 }))
     ];
     await prisma.playingXI.createMany({ data: rows, skipDuplicates: true });
   }
-  const snapshot = await persist(matchId, result.state, userId, action);
+  const snapshot = await persist(String(match.no), result.state, userId, action);
   return { snapshot, state: result.state };
 }
 
@@ -361,13 +371,16 @@ export async function doUndo(matchId: string, userId: string) {
   if (result.delivery) {
     await prisma.delivery.update({ where: { eventId: result.delivery.eventId }, data: { undone: true } });
   }
-  const snapshot = await persist(matchId, result.state, userId, "UNDO", { eventId: result.delivery?.eventId });
+  const snapshot = await persist(String(match.no), result.state, userId, "UNDO", { eventId: result.delivery?.eventId });
   return { snapshot, state: result.state };
 }
 
 export async function doReduceOvers(matchId: string, overs: number, reason: string, userId: string) {
   const result = await runEngine(matchId, userId, (s) => reduceOvers(s, overs, reason, userId), "REDUCE_OVERS");
-  await prisma.match.update({ where: { id: matchId }, data: { reducedOversReason: reason, oversPerInnings: overs } });
+  const match = await loadMatch(matchId);
+  if (match) {
+    await prisma.match.update({ where: { id: match.id }, data: { reducedOversReason: reason, oversPerInnings: overs } });
+  }
   return result;
 }
 
@@ -381,7 +394,7 @@ export async function doPublish(matchId: string, userId: string) {
   }
   const result = publishMatch(state.status === "COMPLETE" ? state : { ...state, status: "COMPLETE" }, userId);
   if (!result.ok) return { error: result.error };
-  const snapshot = await persist(matchId, result.state, userId, "PUBLISH");
+  const snapshot = await persist(String(match.no), result.state, userId, "PUBLISH");
   return { snapshot, state: result.state, checklist: check };
 }
 
@@ -432,13 +445,13 @@ export async function doWalkover(matchId: string, winnerTeamId: string, reason: 
   if (result.state.playingXI && match.playingXI.length === 0) {
     const rows = [
       ...result.state.playingXI.team1.map((playerId, i) => ({
-        matchId,
+        matchId: match.id,
         teamId: match.team1Id,
         playerId,
         battingOrder: i + 1
       })),
       ...result.state.playingXI.team2.map((playerId, i) => ({
-        matchId,
+        matchId: match.id,
         teamId: match.team2Id,
         playerId,
         battingOrder: i + 1
@@ -446,13 +459,13 @@ export async function doWalkover(matchId: string, winnerTeamId: string, reason: 
     ];
     await prisma.playingXI.createMany({ data: rows, skipDuplicates: true });
   }
-  const snapshot = await persist(matchId, result.state, userId, "WALKOVER", { winnerTeamId, reason });
-  const innings = await prisma.innings.findMany({ where: { matchId } });
+  const snapshot = await persist(String(match.no), result.state, userId, "WALKOVER", { winnerTeamId, reason });
+  const innings = await prisma.innings.findMany({ where: { matchId: match.id } });
   const inningsId = new Map(innings.map((row) => [row.inningsNumber, row.id]));
   const deliveries = result.state.innings.flatMap((inn) =>
     inn.deliveries
       .filter((d) => !d.undone)
-      .map((d) => deliveryRow(matchId, inningsId.get(inn.inningsNumber), d, userId))
+      .map((d) => deliveryRow(match.id, inningsId.get(inn.inningsNumber), d, userId))
   );
   if (deliveries.length) {
     await prisma.delivery.createMany({ data: deliveries, skipDuplicates: true });
@@ -460,8 +473,8 @@ export async function doWalkover(matchId: string, winnerTeamId: string, reason: 
   if (result.state.resultSummary) {
     await prisma.commentary.create({
       data: {
-        matchId,
-        eventId: `walkover-${matchId}-result`,
+        matchId: match.id,
+        eventId: `walkover-${match.id}-result`,
         text: result.state.resultSummary,
         kind: "WALKOVER"
       }

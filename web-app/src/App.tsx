@@ -10,6 +10,11 @@ import { WolfLogo } from "./brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { API_BASE } from "./config";
 
+function matchPath(m: { no?: number; id?: string | number } | null | undefined) {
+  if (!m) return "#";
+  return `/matches/${m.no ?? m.id}`;
+}
+
 const socket = io(API_BASE || undefined, {
   path: "/socket.io",
   transports: ["websocket", "polling"],
@@ -99,7 +104,7 @@ function Home() {
       <h2 className="h2">Upcoming</h2>
       <div className="grid-2">
         {upcoming.map((m) => (
-          <Link key={m.id} to={`/matches/${m.id}`} className="card">
+          <Link key={m.id} to={matchPath(m)} className="card">
             <div className="tiny">{new Date(m.scheduledAt).toLocaleString()}</div>
             <strong>{m.team1.shortName} vs {m.team2.shortName}</strong>
             <p className="muted">{m.venue?.name}</p>
@@ -109,7 +114,7 @@ function Home() {
       <h2 className="h2">Recent results</h2>
       <div className="grid-2">
         {recent.map((m) => (
-          <Link key={m.id} to={`/matches/${m.id}`} className="card">
+          <Link key={m.id} to={matchPath(m)} className="card">
             <strong>{m.team1.shortName} vs {m.team2.shortName}</strong>
             <p>{m.resultSummary || m.status}</p>
           </Link>
@@ -122,7 +127,7 @@ function Home() {
 function LiveCard({ m }: { m: any }) {
   const s = m.snapshot;
   return (
-    <Link to={`/matches/${m.id}`} className="card">
+    <Link to={matchPath(m)} className="card">
       <span className="live-tag"><i /> Live</span>
       <div className="muted" style={{ marginTop: 8 }}>
         {m.team1.name} vs {m.team2.name}
@@ -189,8 +194,8 @@ function MatchPage() {
       </h2>
       {live && <span className="live-tag"><i /> Live</span>}
       <p className="tiny" style={{ marginTop: 8 }}>
-        <a href={`/overlay/matches/${id}`} target="_blank" rel="noreferrer">
-          YouTube / OBS score overlay
+        <a href={`/overlay/${data.no ?? data.id ?? id}`} target="_blank" rel="noreferrer">
+          Score overlay #{data.no ?? data.id ?? id}
         </a>
       </p>
       {s && (
@@ -407,7 +412,7 @@ function TournamentPage() {
       <h3 className="h2">Fixtures</h3>
       <div className="grid-2">
         {fixtures.map((f) => (
-          <Link key={f.id} className="card" to={f.match ? `/matches/${f.match.id}` : "#"}>
+          <Link key={f.id} className="card" to={f.match ? matchPath(f.match) : "#"}>
             <div className="tiny">{f.stage} · {new Date(f.scheduledAt).toLocaleString()}</div>
             <strong>{f.team1.shortName} vs {f.team2.shortName}</strong>
             <p className="muted">{f.venue?.name} · {f.match?.status}</p>
@@ -450,7 +455,7 @@ function TeamPage() {
       </div>
       <h3 className="h2">Matches</h3>
       {matches.map((m: any) => (
-        <Link key={m.id} className="card" to={`/matches/${m.id}`} style={{ display: "block", marginBottom: 8 }}>
+        <Link key={m.id} className="card" to={matchPath(m)} style={{ display: "block", marginBottom: 8 }}>
           {m.team1.name} vs {m.team2.name} · {m.resultSummary || m.status}
         </Link>
       ))}
@@ -592,7 +597,7 @@ function SearchPage() {
           <h3>Matches</h3>
           {res.matches.map((m: any) => (
             <div className="list-row" key={m.id}>
-              <Link to={`/matches/${m.id}`}>{m.team1.name} vs {m.team2.name}</Link>
+              <Link to={matchPath(m)}>{m.team1.name} vs {m.team2.name}</Link>
             </div>
           ))}
         </div>
@@ -604,7 +609,7 @@ function SearchPage() {
 export function App() {
   return (
     <Routes>
-      <Route path="/overlay/matches/:id" element={<ScoreOverlay />} />
+      <Route path="/overlay/:id" element={<ScoreOverlay />} />
       <Route
         path="*"
         element={

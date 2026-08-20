@@ -52,8 +52,20 @@ export function ScoreOverlay() {
 
   useEffect(() => {
     if (!id) return;
-    api(`/api/matches/${id}`).then(setData).catch(() => undefined);
-    socket.emit("join:match", id);
+    let room = /^\d+$/.test(id) ? id : "";
+    const load = () =>
+      api(`/api/matches/${id}`).then((row) => {
+        if (row?.id != null) room = String(row.id);
+        setData(row);
+      }).catch(() => undefined);
+    load();
+
+    const join = () => {
+      if (room) socket.emit("join:match", room);
+    };
+    join();
+    socket.on("connect", join);
+
     const onUp = (payload: any) => {
       const snap = payload?.runs != null ? payload : payload?.snapshot ?? payload;
       setData((d: any) =>
@@ -68,8 +80,22 @@ export function ScoreOverlay() {
       );
     };
     socket.on("match:update", onUp);
+
+    const tick = () => {
+      join();
+      load();
+    };
+    const poll = window.setInterval(tick, 2000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
-      socket.emit("leave:match", id);
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVis);
+      socket.off("connect", join);
+      if (room) socket.emit("leave:match", room);
       socket.off("match:update", onUp);
     };
   }, [id]);

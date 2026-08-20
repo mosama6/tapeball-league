@@ -194,6 +194,7 @@ model Fixture {
 
 model Match {
   id                 String          @id @default(uuid())
+  no                 Int             @unique @default(autoincrement())
   fixtureId          String?         @unique
   fixture            Fixture?        @relation(fields: [fixtureId], references: [id])
   tournamentId       String

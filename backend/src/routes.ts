@@ -106,7 +106,7 @@ api.get("/matches", async (req, res) => {
   });
   res.json(
     rows.map((m) => ({
-      id: m.id,
+      id: m.no,
       status: m.status,
       scheduledAt: m.scheduledAt,
       resultSummary: m.resultSummary,
@@ -176,7 +176,7 @@ api.get("/search", async (req, res) => {
       take: 8
     })
   ]);
-  res.json({ players, teams, tournaments, matches });
+      matches: matches.map((m) => ({ ...m, id: m.no })),
 });
 
 api.get("/umpire/matches", requireAuth(["UMPIRE", "ADMIN"]), async (req, res) => {
@@ -187,7 +187,12 @@ api.get("/umpire/matches", requireAuth(["UMPIRE", "ADMIN"]), async (req, res) =>
     }
   });
   const unique = new Map(rows.map((r) => [r.match.id, r.match]));
-  res.json([...unique.values()]);
+  res.json(
+    [...unique.values()].map((m) => ({
+      ...m,
+      id: m.no
+    }))
+  );
 });
 
 api.get("/umpire/matches/:id", requireAuth(["UMPIRE", "ADMIN"]), async (req, res) => {
@@ -618,10 +623,12 @@ api.post("/admin/fixtures", admin, async (req, res) => {
 
 api.post("/admin/matches/:id/officials", admin, async (req, res) => {
   const body = z.object({ userId: z.string(), role: z.string().optional() }).parse(req.body);
+  const match = await loadMatch(req.params.id);
+  if (!match) return res.status(404).json({ error: "Match not found" });
   const row = await prisma.matchOfficial.upsert({
-    where: { matchId_userId: { matchId: req.params.id, userId: body.userId } },
+    where: { matchId_userId: { matchId: match.id, userId: body.userId } },
     update: { role: body.role ?? "UMPIRE" },
-    create: { matchId: req.params.id, userId: body.userId, role: body.role ?? "UMPIRE" }
+    create: { matchId: match.id, userId: body.userId, role: body.role ?? "UMPIRE" }
   });
   res.json(row);
 });
