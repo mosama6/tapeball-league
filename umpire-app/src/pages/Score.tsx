@@ -331,12 +331,14 @@ export function Score() {
           </div>
           <p className="tiny" style={{ marginTop: 8 }}>
             {lastBallComing
-              ? "Last legal ball: a fair six is a Home Run (12). Wide/no-ball is +1 plus runs, not legal, innings continues."
+              ? "Last legal ball: a fair six is a Home Run (12). Wide/no-ball is +1 plus runs (to the striker), not legal, innings continues."
               : lastOver
-                ? "Last over: wide/no-ball is always +1 plus runs scored, and never a legal ball. Tap extra, then 0–6."
+                ? "Last over: wide/no-ball is always +1 plus runs to the striker, and never a legal ball. Tap extra, then 0–6."
                 : extra !== "NONE"
-                  ? `Modifier: ${extra.replace("_", " ")} — tap runs to confirm (0 = extras only)`
-                  : "Wide and no-ball share the same extras: tap extra, then runs (0 = extras only). Bye / leg-bye: tap modifier then runs."}
+                  ? extra === "WIDE" || extra === "NO_BALL"
+                    ? `Modifier: ${extra.replace("_", " ")} — tap runs to confirm. Extra + runs go to the striker.`
+                    : `Modifier: ${extra.replace("_", " ")} — tap runs to confirm (0 = extras only, not to the striker)`
+                  : "Wide and no-ball extras go to the striker. Tap extra, then runs. Bye / leg-bye: tap modifier then runs (extras only)."}
           </p>
         </div>
       )}

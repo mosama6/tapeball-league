@@ -424,7 +424,8 @@ function ScoringRules({
       </div>
       <p className="tiny" style={{ marginTop: 10 }}>
         Wides and no-balls use the same extras. First in an over = +{first}, not a legal ball. Later in
-        the same over = +{next} and it counts as a legal ball. Last over of an innings is simpler: a
+        the same over = +{next} and it counts as a legal ball. Those wide/no-ball runs are added to the
+        striker as well as the team. Last over of an innings is simpler: a
         wide or no-ball is always +1, never a legal ball, plus whatever was scored (1+1 … 1+6). Home
         run: only a fair six on the final legal ball of a normal innings (6+6=12). A wide, no-ball,
         bye, or leg-bye on that apparent last ball is not a Home Run; wide/no-ball also keeps the

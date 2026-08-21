@@ -779,7 +779,7 @@ export function applyDelivery(state: MatchState, input: ScoringInput): ApplyResu
   const scoreBefore = striker.runs;
 
   if (facesBall) striker.balls += 1;
-  striker.runs += batCredit;
+  striker.runs += batCredit + wideRuns + noBallRuns;
   if (batRuns === 4) striker.fours += 1;
   if (batRuns === 6) striker.sixes += 1;
   if (isHomeRun) striker.homeRuns += 1;

@@ -126,7 +126,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(inn(s).current.legalBallsInOver).toBe(0);
     expect(inn(s).current.illegalBallCountThisOver).toBe(1);
     expect(r.delivery?.isLegal).toBe(false);
-    expect(inn(s).batsmen.b1.runs).toBe(0);
+    expect(inn(s).batsmen.b1.runs).toBe(1);
   });
 
   it("second wide in same over → +4 team, extra, is legal, over advances", () => {
@@ -142,6 +142,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(inn(s).legalBalls).toBe(1);
     expect(inn(s).current.legalBallsInOver).toBe(1);
     expect(inn(s).current.illegalBallCountThisOver).toBe(2);
+    expect(inn(s).batsmen.b1.runs).toBe(5);
   });
 
   it("wide/illegal counter resets to 0 at the start of each new over", () => {
@@ -160,14 +161,14 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(inn(r.state).current.illegalBallCountThisOver).toBe(1);
   });
 
-  it("no-ball + six → team +7, batsman +6, no-ball extra +1, not legal", () => {
+  it("no-ball + six → team +7, batsman +7 (six + no-ball extra), not legal", () => {
     let s = createReadyInnings({});
     const r = play(s, { extraType: "NO_BALL", batRuns: 6 });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     s = r.state;
     expect(inn(s).totalRuns).toBe(7);
-    expect(inn(s).batsmen.b1.runs).toBe(6);
+    expect(inn(s).batsmen.b1.runs).toBe(7);
     expect(inn(s).extras.noBalls).toBe(1);
     expect(r.delivery?.isLegal).toBe(false);
     expect(inn(s).legalBalls).toBe(0);
@@ -218,7 +219,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(nb.delivery?.isHomeRun).toBe(false);
     expect(inn(nb.state).isComplete).toBe(false);
     expect(inn(nb.state).legalBalls).toBe(5);
-    expect(inn(nb.state).batsmen.b1.runs).toBe(6);
+    expect(inn(nb.state).batsmen.b1.runs).toBe(7);
   });
 
   it("last over wide/no-ball is always +1, never legal, plus runs scored", () => {
@@ -240,7 +241,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     if (!nb2.ok) return;
     expect(nb2.delivery?.isLegal).toBe(false);
     expect(nb2.delivery?.noBallRuns).toBe(1);
-    expect(inn(nb2.state).batsmen.b1.runs).toBe(4);
+    expect(inn(nb2.state).batsmen.b1.runs).toBe(6);
     expect(inn(nb2.state).totalRuns).toBe(6);
     expect(inn(nb2.state).legalBalls).toBe(0);
   });
@@ -506,23 +507,23 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(inn(again.state).deliveries.filter((d) => d.eventId === "same-id")).toHaveLength(1);
   });
 
-  it("wide/no-ball extra/bye/leg-bye never added to striker score or 30 threshold", () => {
+  it("bye/leg-bye stay off the striker; wide and no-ball extras are added to the striker", () => {
     let s = createReadyInnings({});
     s = must(s, { extraType: "BYE", byeRuns: 4, batRuns: 4 });
     s = must(s, { extraType: "LEG_BYE", legByeRuns: 2, batRuns: 2 });
     s = must(s, { extraType: "WIDE" });
-    expect(inn(s).batsmen.b1.runs).toBe(0);
+    expect(inn(s).batsmen.b1.runs).toBe(1);
     expect(inn(s).totalRuns).toBe(4 + 2 + 1);
     expect(inn(s).batsmen.b1.statusKind).toBe("BATTING");
 
     let s2 = createReadyInnings({});
     s2 = must(s2, { extraType: "NO_BALL", batRuns: 0 });
-    expect(inn(s2).batsmen.b1.runs).toBe(0);
+    expect(inn(s2).batsmen.b1.runs).toBe(1);
     expect(inn(s2).extras.noBalls).toBe(1);
     expect(inn(s2).totalRuns).toBe(1);
   });
 
-  it("27 + boundary off no-ball → batsman 31 retired; team +5", () => {
+  it("27 + boundary off no-ball → batsman 32 retired; team +5", () => {
     let s = createReadyInnings({});
     for (let i = 0; i < 4; i++) s = must(s, { batRuns: 6, strikerId: "b1", nonStrikerId: "b2" });
     s = must(s, { batRuns: 3, strikerId: "b1", nonStrikerId: "b2" });
@@ -531,13 +532,13 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     s = r.state;
-    expect(inn(s).batsmen.b1.runs).toBe(31);
+    expect(inn(s).batsmen.b1.runs).toBe(32);
     expect(inn(s).totalRuns).toBe(27 + 5);
     expect(inn(s).batsmen.b1.statusKind).toBe("RETIRED_NOT_OUT");
     expect(inn(s).wickets).toBe(0);
   });
 
-  it("batsman on 29, wide → team +1, batsman stays 29, not retired", () => {
+  it("batsman on 29, wide → team +1, batsman 30 and retires", () => {
     let s = createReadyInnings({});
     for (let i = 0; i < 4; i++) s = must(s, { batRuns: 6, strikerId: "b1", nonStrikerId: "b2" });
     s = must(s, { batRuns: 4, strikerId: "b1", nonStrikerId: "b2" });
@@ -547,13 +548,12 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     s = r.state;
-    expect(inn(s).batsmen.b1.runs).toBe(29);
+    expect(inn(s).batsmen.b1.runs).toBe(30);
     expect(inn(s).totalRuns).toBe(30);
-    expect(inn(s).batsmen.b1.statusKind).toBe("BATTING");
-    expect(inn(s).pendingReplacement).toBeNull();
+    expect(inn(s).batsmen.b1.statusKind).toBe("RETIRED_NOT_OUT");
   });
 
-  it("wide then no-ball + six → team +10, batsman +6, legal, next is Free Hit", () => {
+  it("wide then no-ball + six → team +11, batsman +11 (wide 1 + NB extra 4 + six 6), legal, next is Free Hit", () => {
     let s = createReadyInnings({});
     s = must(s, { extraType: "WIDE" });
     const r = play(s, { extraType: "NO_BALL", batRuns: 6 });
@@ -562,7 +562,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     s = r.state;
     expect(inn(s).totalRuns).toBe(11);
     expect(r.delivery?.totalRuns).toBe(10);
-    expect(inn(s).batsmen.b1.runs).toBe(6);
+    expect(inn(s).batsmen.b1.runs).toBe(11);
     expect(r.delivery?.isLegal).toBe(true);
     expect(inn(s).legalBalls).toBe(1);
     expect(inn(s).current.isFreeHit).toBe(true);
@@ -745,7 +745,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     if (!wide.ok) return;
     expect(inn(wide.state).totalRuns).toBe(3);
     expect(inn(wide.state).extras.wides).toBe(3);
-    expect(inn(wide.state).batsmen.b1.runs).toBe(0);
+    expect(inn(wide.state).batsmen.b1.runs).toBe(3);
     expect(inn(wide.state).wickets).toBe(1);
     expect(wide.delivery?.isLegal).toBe(false);
 
@@ -758,7 +758,7 @@ describe("Wolfpack TapeBall scoring engine", () => {
     expect(nb.ok).toBe(true);
     if (!nb.ok) return;
     expect(inn(nb.state).totalRuns).toBe(3);
-    expect(inn(nb.state).batsmen.b1.runs).toBe(2);
+    expect(inn(nb.state).batsmen.b1.runs).toBe(3);
     expect(inn(nb.state).wickets).toBe(1);
     expect(nb.delivery?.isLegal).toBe(false);
   });

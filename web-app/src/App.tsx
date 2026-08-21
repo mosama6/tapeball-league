@@ -343,7 +343,9 @@ function Scorecard({ s }: { s: any }) {
             </tbody>
           </table>
           <p className="tiny" style={{ marginTop: 8 }}>Yet to bat: {inn.yetToBat.join(", ") || "—"}</p>
-          <p className="tiny">Extras {inn.extras.total} (wd {inn.extras.wides}, nb {inn.extras.noBalls}, b {inn.extras.byes}, lb {inn.extras.legByes})</p>
+          <p className="tiny">
+            Extras {inn.extras.total} (wd {inn.extras.wides}, nb {inn.extras.noBalls} — credited to the striker; b {inn.extras.byes}, lb {inn.extras.legByes})
+          </p>
           <table style={{ marginTop: 12 }}>
             <thead>
               <tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th><th>Wd</th><th>Nb</th></tr>
