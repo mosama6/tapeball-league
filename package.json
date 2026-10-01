@@ -20,6 +20,7 @@
     "start:api": "npm run start:prod -w backend",
     "build": "npm run build -w shared && npm run build -w backend && npm run build -w umpire-app && npm run build -w web-app"
   },
+  
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
